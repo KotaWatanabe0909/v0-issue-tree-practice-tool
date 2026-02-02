@@ -294,7 +294,17 @@ export function IssueTree() {
     }
   }, []);
 
-  const hasFeedback = feedback.goodPoints.length > 0 || feedback.improvementPoints.length > 0;
+  const hasFeedback = feedback.goodPoints.length > 0 || feedback.improvementPoints.length > 0 || validationErrors.length > 0;
+
+  // ノードIDからノード内容を取得するヘルパー関数
+  const getNodeContent = (nodeId: string): string => {
+    const node = nodes.find((n) => n.id === nodeId);
+    return node?.content || "不明なノード";
+  };
+
+  // 個別フィードバック（良い点・改善点）をノード引用形式で分類
+  const individualGoodFeedback = validationErrors.filter((e) => e.type === "good" && e.message !== "OK");
+  const individualBadFeedback = validationErrors.filter((e) => e.type === "error" || e.type === "warning");
 
   return (
     <div className="flex flex-col h-full">
@@ -348,7 +358,6 @@ export function IssueTree() {
       <div className="flex-1 overflow-hidden p-6 bg-background">
         <TreeCanvas
           nodes={nodes}
-          validationErrors={validationErrors}
           onUpdateNode={handleUpdateNode}
           onAddChild={handleAddChild}
           onDeleteNode={handleDeleteNode}
@@ -359,12 +368,12 @@ export function IssueTree() {
       {/* Feedback Panel */}
       {isValidated && hasFeedback && (
         <div className="border-t border-border bg-card p-4">
-          <div className="flex flex-wrap gap-3">
-            {/* Good Points */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {/* Good Points (Overall) */}
             {feedback.goodPoints.length > 0 && (
-              <Alert className="flex-1 min-w-72 border-emerald-500/50 bg-emerald-500/5">
+              <Alert className="border-emerald-500/50 bg-emerald-500/5">
                 <ThumbsUp className="h-4 w-4 text-emerald-600" />
-                <AlertTitle className="text-emerald-700">Good Points</AlertTitle>
+                <AlertTitle className="text-emerald-700">Good Points（全体）</AlertTitle>
                 <AlertDescription>
                   <ul className="mt-1 space-y-1 text-emerald-700">
                     {feedback.goodPoints.map((point, idx) => (
@@ -374,16 +383,50 @@ export function IssueTree() {
                 </AlertDescription>
               </Alert>
             )}
-            
-            {/* Improvement Points */}
+
+            {/* Good Points (Individual) */}
+            {individualGoodFeedback.length > 0 && (
+              <Alert className="border-emerald-500/50 bg-emerald-500/5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <AlertTitle className="text-emerald-700">良い点（個別）</AlertTitle>
+                <AlertDescription>
+                  <ul className="mt-1 space-y-1 text-emerald-700">
+                    {individualGoodFeedback.map((error, idx) => (
+                      <li key={idx} className="text-sm">
+                        • 「{getNodeContent(error.nodeId)}」→ {error.message}
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Improvement Points (Overall) */}
             {feedback.improvementPoints.length > 0 && (
-              <Alert className="flex-1 min-w-72 border-amber-500/50 bg-amber-500/5">
+              <Alert className="border-amber-500/50 bg-amber-500/5">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertTitle className="text-amber-700">改善ポイント</AlertTitle>
+                <AlertTitle className="text-amber-700">改善ポイント（全体）</AlertTitle>
                 <AlertDescription>
                   <ul className="mt-1 space-y-1 text-amber-700">
                     {feedback.improvementPoints.map((point, idx) => (
                       <li key={idx} className="text-sm">• {point}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Improvement Points (Individual) */}
+            {individualBadFeedback.length > 0 && (
+              <Alert className="border-amber-500/50 bg-amber-500/5">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-700">改善ポイント（個別）</AlertTitle>
+                <AlertDescription>
+                  <ul className="mt-1 space-y-1 text-amber-700">
+                    {individualBadFeedback.map((error, idx) => (
+                      <li key={idx} className="text-sm">
+                        • 「{getNodeContent(error.nodeId)}」→ {error.message}
+                      </li>
                     ))}
                   </ul>
                 </AlertDescription>
