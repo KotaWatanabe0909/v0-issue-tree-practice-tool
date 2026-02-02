@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { CheckCircle2, AlertTriangle, ThumbsUp, RotateCcw, Download } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ThumbsUp, RotateCcw, Download, Sparkles } from "lucide-react";
 import type { TreeNode, ValidationError, FeedbackResult } from "@/lib/issue-tree-types";
 import { getChildType } from "@/lib/issue-tree-types";
 import { TreeCanvas } from "./tree-canvas";
@@ -48,6 +48,8 @@ export function IssueTree() {
   const [feedback, setFeedback] = useState<FeedbackResult>({ goodPoints: [], improvementPoints: [] });
   const [isValidated, setIsValidated] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isAIValidating, setIsAIValidating] = useState(false);
+  const [aiProvider, setAiProvider] = useState<"openai" | "gemini">("openai");
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const generateId = () => `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -216,6 +218,54 @@ export function IssueTree() {
     setIsValidated(true);
   }, [nodes]);
 
+  const handleAIValidate = useCallback(async () => {
+    setIsAIValidating(true);
+    setValidationErrors([]);
+    setFeedback({ goodPoints: [], improvementPoints: [] });
+    
+    try {
+      const response = await fetch("/api/validate-tree", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ nodes, provider: aiProvider }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "AI validation failed");
+      }
+
+      const result = await response.json();
+      
+      if (result.validationErrors) {
+        setValidationErrors(result.validationErrors);
+      }
+      
+      if (result.goodPoints || result.improvementPoints) {
+        setFeedback({
+          goodPoints: result.goodPoints || [],
+          improvementPoints: result.improvementPoints || [],
+        });
+      }
+      
+      setIsValidated(true);
+    } catch (error) {
+      console.error("AI validation error:", error);
+      setFeedback({
+        goodPoints: [],
+        improvementPoints: [
+          `AI判定エラー: ${error instanceof Error ? error.message : "不明なエラー"}`,
+          "APIキーが設定されているか確認してください",
+        ],
+      });
+      setIsValidated(true);
+    } finally {
+      setIsAIValidating(false);
+    }
+  }, [nodes, aiProvider]);
+
   const handleReset = useCallback(() => {
     setNodes(initialNodes);
     setValidationErrors([]);
@@ -268,10 +318,29 @@ export function IssueTree() {
             <RotateCcw className="h-4 w-4" />
             リセット
           </Button>
-          <Button onClick={handleValidate} className="gap-2">
+          <Button onClick={handleValidate} variant="outline" className="gap-2 bg-transparent">
             <CheckCircle2 className="h-4 w-4" />
-            判定
+            ルール判定
           </Button>
+          <div className="flex items-center gap-2">
+            <select 
+              value={aiProvider}
+              onChange={(e) => setAiProvider(e.target.value as "openai" | "gemini")}
+              className="h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              disabled={isAIValidating}
+            >
+              <option value="openai">OpenAI</option>
+              <option value="gemini">Gemini</option>
+            </select>
+            <Button 
+              onClick={handleAIValidate} 
+              className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              disabled={isAIValidating}
+            >
+              <Sparkles className="h-4 w-4" />
+              {isAIValidating ? "AI判定中..." : "AI判定"}
+            </Button>
+          </div>
         </div>
       </header>
 
