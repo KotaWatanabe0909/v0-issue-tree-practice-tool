@@ -3,12 +3,11 @@
 import React from "react"
 
 import { useRef, useEffect, useState } from "react";
-import type { TreeNode, ValidationError } from "@/lib/issue-tree-types";
+import type { TreeNode } from "@/lib/issue-tree-types";
 import { TreeCard } from "./tree-card";
 
 interface TreeCanvasProps {
   nodes: TreeNode[];
-  validationErrors: ValidationError[];
   onUpdateNode: (id: string, content: string) => void;
   onAddChild: (parentId: string, addIssue: boolean) => void;
   onDeleteNode: (id: string) => void;
@@ -23,7 +22,6 @@ interface PositionedNode extends TreeNode {
 
 export function TreeCanvas({
   nodes,
-  validationErrors,
   onUpdateNode,
   onAddChild,
   onDeleteNode,
@@ -57,9 +55,9 @@ export function TreeCanvas({
   const calculatePositions = (root: PositionedNode): Map<string, { x: number; y: number }> => {
     const positions = new Map<string, { x: number; y: number }>();
     const CARD_WIDTH = 208; // w-52 = 13rem = 208px
-    const CARD_HEIGHT = 120;
+    const CARD_HEIGHT = 200; // Increased to account for validation messages
     const H_GAP = 80;
-    const V_GAP = 24;
+    const V_GAP = 40; // Increased for better spacing
 
     const calculateSubtree = (
       node: PositionedNode,
@@ -115,13 +113,9 @@ export function TreeCanvas({
     setConnections(newConnections);
   }, [nodes]);
 
-  const getValidation = (nodeId: string) => {
-    return validationErrors.find((e) => e.nodeId === nodeId);
-  };
-
   const renderConnections = () => {
     const CARD_WIDTH = 208;
-    const CARD_HEIGHT = 96;
+    const CARD_HEIGHT = 120; // Visual center of card content area (excluding validation)
 
     return connections.map((conn) => {
       const fromPos = nodePositions.get(conn.from);
@@ -160,7 +154,7 @@ export function TreeCanvas({
 
     nodePositions.forEach((pos) => {
       maxX = Math.max(maxX, pos.x + 280);
-      maxY = Math.max(maxY, pos.y + 160);
+      maxY = Math.max(maxY, pos.y + 250); // Increased to account for validation messages
     });
 
     return { width: Math.max(800, maxX + 100), height: Math.max(400, maxY + 100) };
@@ -206,7 +200,6 @@ export function TreeCanvas({
             >
               <TreeCard
                 node={node}
-                validation={getValidation(node.id)}
                 onUpdate={onUpdateNode}
                 onAddChild={onAddChild}
                 onDelete={onDeleteNode}

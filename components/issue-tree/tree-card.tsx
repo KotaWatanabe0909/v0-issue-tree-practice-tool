@@ -5,13 +5,12 @@ import React from "react"
 import { useState, useRef, useEffect } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TreeNode, NodeType, ValidationError } from "@/lib/issue-tree-types";
+import type { TreeNode, NodeType } from "@/lib/issue-tree-types";
 import { getNodeTypeLabel } from "@/lib/issue-tree-types";
 import { Button } from "@/components/ui/button";
 
 interface TreeCardProps {
   node: TreeNode;
-  validation?: ValidationError;
   onUpdate: (id: string, content: string) => void;
   onAddChild: (parentId: string, addIssue: boolean) => void;
   onDelete: (id: string) => void;
@@ -22,7 +21,6 @@ interface TreeCardProps {
 
 export function TreeCard({
   node,
-  validation,
   onUpdate,
   onAddChild,
   onDelete,
@@ -74,24 +72,12 @@ export function TreeCard({
     }
   };
 
-  const getValidationStyles = () => {
-    if (!validation) return "";
-    if (validation.type === "error") {
-      return "ring-2 ring-destructive border-destructive";
-    }
-    if (validation.type === "good") {
-      return "ring-2 ring-emerald-500 border-emerald-500";
-    }
-    return "ring-2 ring-warning border-warning";
-  };
-
   return (
     <div className="relative group">
       <div
         className={cn(
           "w-52 min-h-24 rounded-lg border shadow-sm transition-all",
           getTypeStyles(node.type),
-          getValidationStyles(),
           "hover:shadow-md"
         )}
       >
@@ -149,21 +135,6 @@ export function TreeCard({
           )}
         </div>
 
-        {/* Validation Message */}
-        {validation && (
-          <div
-            className={cn(
-              "px-3 py-2 text-xs border-t",
-              validation.type === "error"
-                ? "bg-destructive/10 text-destructive border-destructive/20"
-                : validation.type === "good"
-                  ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
-                  : "bg-warning/10 text-warning-foreground border-warning/20"
-            )}
-          >
-            {validation.message}
-          </div>
-        )}
       </div>
 
       {/* Actions */}
